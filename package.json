@@ -1,0 +1,16 @@
+{
+  "name": "projmanagement",
+  "version": "1.0.0",
+  "description": "A project management application",
+  "license": "ISC",
+  "author": "Maheshwar Kohal",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "node index.js"
+  },
+  "devDependencies": {
+    "prettier": "3.8.1"
+  }
+}
