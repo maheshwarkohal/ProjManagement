@@ -8,9 +8,18 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "node index.js"
+    "dev": "nodemon src/index.js",
+    "start": "node src/index.js",
+    "format": "prettier --write ."
   },
   "devDependencies": {
+    "nodemon": "^3.1.14",
     "prettier": "3.8.1"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "mongoose": "^9.2.3"
   }
 }
