@@ -37,7 +37,7 @@ const sendEmail = async (options) => {
   }
 };
 
-const emailVerificationMailContent =  (username, verificationUrl) => {
+const emailVerificationMailContent = (username, verificationUrl) => {
   return {
     body: {
       name: username,
@@ -58,7 +58,7 @@ const emailVerificationMailContent =  (username, verificationUrl) => {
   };
 };
 
-const forgotPasswordMailContent =  (username, passwordResetUrl) => {
+const forgotPasswordMailContent = (username, passwordResetUrl) => {
   return {
     body: {
       name: username,

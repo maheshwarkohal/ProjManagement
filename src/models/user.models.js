@@ -105,8 +105,8 @@ userSchema.methods.generateRefreshToken = function () {
 };
 
 userSchema.methods.generateTemporaryToken = function () {
-  const unHashedToken = crypto.randomBytes(32).toString("hex");
-  //  32 bytes of random data
+  const unHashedToken = crypto.randomBytes(20).toString("hex");
+  //  20 bytes of random data
   //  crypto generates hex value so convert it into string
 
   //now lets encrypt the unHashedToken(string that we generated)
