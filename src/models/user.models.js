@@ -124,4 +124,5 @@ userSchema.methods.generateTemporaryToken = function () {
   return { unHashedToken, hashedToken, tokenExpiry };
 };
 
-export const User = mongoose.model("User", userSchema);
+export const User = mongoose.model("User", userSchema); // User will be converted to lowercase with plural (users)
+// in database and it will follow the structure of userSchema
