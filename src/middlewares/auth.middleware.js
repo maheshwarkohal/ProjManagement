@@ -3,6 +3,7 @@ import { ProjectMember } from "../models/projectmember.models.js";
 import { ApiError } from "../utils/api-error.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose";
 
 export const verifyJWT = asyncHandler(async (req, res, next) => {
   const token =
@@ -29,27 +30,42 @@ export const verifyJWT = asyncHandler(async (req, res, next) => {
   }
 });
 
-export const validateProjectPermission = (roles = []) => {
+export const requireProjectMembership = asyncHandler(async (req, res, next) => {
+  const { projectId } = req.params;
+
+  if (!projectId) {
+    throw new ApiError(400, "Project ID is required");
+  }
+
+  if (!mongoose.Types.ObjectId.isValid(projectId)) {
+    throw new ApiError(400, "Invalid project ID");
+  }
+
+  const projectMember = await ProjectMember.findOne({
+    project: new mongoose.Types.ObjectId(projectId),
+    user: new mongoose.Types.ObjectId(req.user._id),
+  });
+
+  if (!projectMember) {
+    throw new ApiError(403, "You are not a member of this project");
+  }
+
+  req.projectMember = projectMember;
+  req.projectRole = projectMember.role;
+
+  next();
+});
+
+export const requireProjectRoles = (allowedRoles = []) => {
   return asyncHandler(async (req, res, next) => {
-    const { projectId } = req.params;
-
-    if (!projectId) {
-      throw new ApiError(400, "Project ID is required");
+    if (!req.projectMember || !req.projectRole) {
+      throw new ApiError(
+        500,
+        "Project membership must be loaded before checking roles",
+      );
     }
 
-    const projectMember = await ProjectMember.findOne({
-      project: new mongoose.Types.ObjectId(projectId),
-      user: new mongoose.Types.ObjectId(req.user._id),
-    });
-    if (!projectMember) {
-      throw new ApiError(403, "You are not a member of this project");
-    }
-
-    const givenRole = projectMember?.role;
-
-    req.user.role = givenRole;
-
-    if (!roles.includes(givenRole)) {
+    if (!allowedRoles.includes(req.projectRole)) {
       throw new ApiError(
         403,
         "You do not have permission to perform this action",
@@ -59,3 +75,4 @@ export const validateProjectPermission = (roles = []) => {
     next();
   });
 };
+

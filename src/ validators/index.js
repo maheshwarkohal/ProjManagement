@@ -1,5 +1,8 @@
-import { body } from "express-validator";
-import { AvailabeUserRole } from "../utils/constants.js";
+import { body, param } from "express-validator";
+import {
+  AvailableTaskStatus,
+  AvailableUserRole,
+} from "../utils/constants.js";
 
 const userRegisterValidator = () => {
   return [
@@ -70,6 +73,17 @@ const createProjectValidator = () => {
   ];
 };
 
+const updateProjectValidator = () => {
+  return [
+    body("name")
+      .optional()
+      .trim()
+      .notEmpty()
+      .withMessage("Project name cannot be empty"),
+    body("description").optional().trim(),
+  ];
+};
+
 const addMemberToProjectValidator = () => {
   return [
     body("email")
@@ -82,8 +96,115 @@ const addMemberToProjectValidator = () => {
       .trim()
       .notEmpty()
       .withMessage("Role is required")
-      .isIn(AvailabeUserRole)
-      .withMessage("Role is invalid"),
+      .isIn(AvailableUserRole)
+      .withMessage("Role is invalid, it can be either admin or member"),
+  ];
+};
+
+const updateMemberRoleValidator = () => {
+  return [
+    body("newRole")
+      .trim()
+      .notEmpty()
+      .withMessage("New role is required")
+      .isIn(AvailableUserRole)
+      .withMessage("Role is invalid, it can be either admin or member"),
+  ];
+};
+
+const mongoIdParamValidator = (...paramNames) => {
+  return paramNames.map((paramName) =>
+    param(paramName)
+      .isMongoId()
+      .withMessage(`${paramName} must be a valid Mongo ID`),
+  );
+};
+
+const createTaskValidator = () => {
+  return [
+    body("title")
+      .trim()
+      .notEmpty()
+      .withMessage("Task title is required"),
+    body("description").optional().trim(),
+    body("assignedTo")
+      .optional({ values: "falsy" })
+      .isMongoId()
+      .withMessage("Assigned user must be a valid user ID"),
+    body("status")
+      .optional()
+      .isIn(AvailableTaskStatus)
+      .withMessage("Task status is invalid"),
+  ];
+};
+
+const updateTaskDetailsValidator = () => {
+  return [
+    body("title")
+      .optional()
+      .trim()
+      .notEmpty()
+      .withMessage("Task title cannot be empty"),
+    body("description").optional().trim(),
+    body("assignedTo")
+      .optional({ values: "falsy" })
+      .isMongoId()
+      .withMessage("Assigned user must be a valid user ID"),
+  ];
+};
+
+const updateTaskStatusValidator = () => {
+  return [
+    body("status")
+      .trim()
+      .notEmpty()
+      .withMessage("Task status is required")
+      .isIn(AvailableTaskStatus)
+      .withMessage("Task status is invalid"),
+  ];
+};
+
+const createSubtaskValidator = () => {
+  return [
+    body("title")
+      .trim()
+      .notEmpty()
+      .withMessage("Subtask title is required"),
+    body("description").optional().trim(),
+    body("assignedTo")
+      .optional({ values: "falsy" })
+      .isMongoId()
+      .withMessage("Assigned user must be a valid user ID"),
+    body("status")
+      .optional()
+      .isIn(AvailableTaskStatus)
+      .withMessage("Subtask status is invalid"),
+  ];
+};
+
+const updateSubtaskDetailsValidator = () => {
+  return [
+    body("title")
+      .optional()
+      .trim()
+      .notEmpty()
+      .withMessage("Subtask title cannot be empty"),
+    body("description").optional().trim(),
+    body("assignedTo")
+      .optional({ values: "falsy" })
+      .isMongoId()
+      .withMessage("Assigned user must be a valid user ID"),
+  ];
+};
+
+const updateSubtaskStatusValidator = () => {
+  return [
+    body("status")
+      .trim()
+      .notEmpty()
+      .withMessage("Subtask status is required")
+      .isIn(AvailableTaskStatus)
+      .withMessage("Subtask status is invalid"),
   ];
 };
 
@@ -94,5 +215,14 @@ export {
   forgotPasswordRequestValidator,
   resetForgotPasswordValidator,
   createProjectValidator,
+  updateProjectValidator,
   addMemberToProjectValidator,
+  updateMemberRoleValidator,
+  mongoIdParamValidator,
+  createTaskValidator,
+  updateTaskDetailsValidator,
+  updateTaskStatusValidator,
+  createSubtaskValidator,
+  updateSubtaskDetailsValidator,
+  updateSubtaskStatusValidator,
 };

@@ -9,18 +9,21 @@ import {
   getProjectMembers,
   updateMemberRole,
   deleteMember,
-} from "../controllers/auth.controllers.js";
+} from "../controllers/project.controllers.js";
 import { validate } from "../middlewares/validator.middleware.js";
 import {
   createProjectValidator,
+  updateProjectValidator,
   addMemberToProjectValidator,
+  updateMemberRoleValidator,
+  mongoIdParamValidator,
 } from "../ validators/index.js";
 import {
-  validateProjectPermission,
+  requireProjectMembership,
+  requireProjectRoles,
   verifyJWT,
 } from "../middlewares/auth.middleware.js";
-import { get } from "mongoose";
-import { AvailabeUserRole, UserRolesEnum } from "../utils/constants.js";
+import { UserRolesEnum } from "../utils/constants.js";
 
 const router = Router();
 router.use(verifyJWT);
@@ -32,20 +35,38 @@ router
 
 router
   .route("/:projectId")
-  .get(validateProjectPermission(AvailabeUserRole), getProjectById)
+  .get(mongoIdParamValidator("projectId"), validate, requireProjectMembership, getProjectById)
   .put(
-    validateProjectPermission([UserRolesEnum.ADMIN]),
-    createProjectValidator(),
+    mongoIdParamValidator("projectId"),
+    validate,
+    requireProjectMembership,
+    requireProjectRoles([UserRolesEnum.ADMIN]),
+    updateProjectValidator(),
     validate,
     updateProject,
   )
-  .delete(validateProjectPermission([UserRolesEnum.ADMIN]), deleteProject);
+  .delete(
+    mongoIdParamValidator("projectId"),
+    validate,
+    requireProjectMembership,
+    requireProjectRoles([UserRolesEnum.ADMIN]),
+    deleteProject,
+  );
 
 router
   .route("/:projectId/members")
-  .get(getProjectMembers)
+  .get(
+    mongoIdParamValidator("projectId"),
+    validate,
+    requireProjectMembership,
+    requireProjectRoles([UserRolesEnum.ADMIN]),
+    getProjectMembers,
+  )
   .post(
-    validateProjectPermission([UserRolesEnum.ADMIN]),
+    mongoIdParamValidator("projectId"),
+    validate,
+    requireProjectMembership,
+    requireProjectRoles([UserRolesEnum.ADMIN]),
     addMemberToProjectValidator(),
     validate,
     addMembersToProject,
@@ -53,7 +74,21 @@ router
 
 router
   .route("/:projectId/members/:userId")
-  .put(validateProjectPermission([UserRolesEnum.ADMIN]), updateMemberRole)
-  .delete(validateProjectPermission([UserRolesEnum.ADMIN]), deleteMember);
+  .put(
+    mongoIdParamValidator("projectId", "userId"),
+    validate,
+    requireProjectMembership,
+    requireProjectRoles([UserRolesEnum.ADMIN]),
+    updateMemberRoleValidator(),
+    validate,
+    updateMemberRole,
+  )
+  .delete(
+    mongoIdParamValidator("projectId", "userId"),
+    validate,
+    requireProjectMembership,
+    requireProjectRoles([UserRolesEnum.ADMIN]),
+    deleteMember,
+  );
 
 export default router;

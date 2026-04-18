@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { AvailabeUserRole, UserRolesEnum } from "../utils/constants.js";
+import { AvailableUserRole, UserRolesEnum } from "../utils/constants.js";
 
 const projectMemberSchema = new Schema(
   {
@@ -15,12 +15,14 @@ const projectMemberSchema = new Schema(
     },
     role: {
       type: String,
-      enum: AvailabeUserRole,
+      enum: AvailableUserRole,
       default: UserRolesEnum.MEMBER,
     },
   },
   { timestamps: true },
 );
+
+projectMemberSchema.index({ project: 1, user: 1 }, { unique: true });
 
 export const ProjectMember = mongoose.model(
   "ProjectMember",

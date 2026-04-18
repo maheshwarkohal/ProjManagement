@@ -7,12 +7,10 @@ export const validate = (req, res, next) => {
     return next();
   }
 
-  const extractedErrors = [];
-  errors.array().map((err) =>
-    extractedErrors.push({
-      [err.path]: err.msg,
-    }),
-  ); // you can push whole error object if you want
+  const extractedErrors = errors.array().map((err) => ({
+    field: err.path,
+    message: err.msg,
+  }));
 
-  throw new ApiError("Validation Error", 400, extractedErrors);
+  throw new ApiError(400, "Validation Error", extractedErrors);
 };
