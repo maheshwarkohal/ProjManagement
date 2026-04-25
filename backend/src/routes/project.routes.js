@@ -4,6 +4,7 @@ import {
   getProjectById,
   createProject,
   updateProject,
+  toggleProjectStar,
   deleteProject,
   addMembersToProject,
   getProjectMembers,
@@ -14,6 +15,7 @@ import { validate } from "../middlewares/validator.middleware.js";
 import {
   createProjectValidator,
   updateProjectValidator,
+  toggleProjectStarValidator,
   addMemberToProjectValidator,
   updateMemberRoleValidator,
   mongoIdParamValidator,
@@ -54,6 +56,15 @@ router
     requireProjectRoles([UserRolesEnum.ADMIN]),
     deleteProject,
   );
+
+router.route("/:projectId/star").patch(
+  mongoIdParamValidator("projectId"),
+  validate,
+  requireProjectMembership,
+  toggleProjectStarValidator(),
+  validate,
+  toggleProjectStar,
+);
 
 router
   .route("/:projectId/members")

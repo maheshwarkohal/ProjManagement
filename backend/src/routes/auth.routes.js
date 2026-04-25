@@ -9,6 +9,7 @@ import {
   registerUser,
   resendEmailVerification,
   resetForgotPassword,
+  updateCurrentUser,
   verifyEmail,
 } from "../controllers/auth.controllers.js";
 import { validate } from "../middlewares/validator.middleware.js";
@@ -18,8 +19,10 @@ import {
   resetForgotPasswordValidator,
   forgotPasswordRequestValidator,
   changeCurrentPasswordValidator,
+  updateCurrentUserValidator,
 } from "../ validators/index.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { upload } from "../middlewares/multer.middleware.js";
 
 const router = Router();
 
@@ -39,7 +42,16 @@ router
 
 // Protected routes
 router.route("/logout").post(verifyJWT, logoutUser);
-router.route("/current-user").get(verifyJWT, getCurrentUser);
+router
+  .route("/current-user")
+  .get(verifyJWT, getCurrentUser)
+  .put(
+    verifyJWT,
+    upload.single("avatar"),
+    updateCurrentUserValidator(),
+    validate,
+    updateCurrentUser,
+  );
 router
   .route("/change-password")
   .post(
