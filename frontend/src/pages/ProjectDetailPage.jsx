@@ -29,6 +29,13 @@ const taskStatusOptions = [
   { value: "done", label: "Done" },
 ];
 
+const projectStatusOptions = [
+  { value: "planning", label: "Planning" },
+  { value: "active", label: "Active" },
+  { value: "on_hold", label: "On Hold" },
+  { value: "completed", label: "Completed" },
+];
+
 const formatStatusLabel = (status) =>
   taskStatusOptions.find((option) => option.value === status)?.label || "To do";
 
@@ -93,6 +100,7 @@ export function ProjectDetailPage() {
     defaultValues: {
       name: "",
       description: "",
+      status: "planning",
       coverImage: null,
     },
   });
@@ -176,6 +184,7 @@ export function ProjectDetailPage() {
     resetProjectForm({
       name: project?.name || "",
       description: project?.description || "",
+      status: project?.status || "planning",
       coverImage: null,
     });
     setIsEditProjectModalOpen(true);
@@ -186,6 +195,7 @@ export function ProjectDetailPage() {
     resetProjectForm({
       name: project?.name || "",
       description: project?.description || "",
+      status: project?.status || "planning",
       coverImage: null,
     });
   };
@@ -460,15 +470,18 @@ export function ProjectDetailPage() {
     const normalizedValues = {
       name: values.name?.trim() || "",
       description: values.description?.trim() || "",
+      status: values.status || "planning",
     };
     const normalizedCurrentProject = {
       name: project?.name?.trim() || "",
       description: project?.description?.trim() || "",
+      status: project?.status || "planning",
     };
 
     if (
       normalizedValues.name === normalizedCurrentProject.name &&
       normalizedValues.description === normalizedCurrentProject.description &&
+      normalizedValues.status === normalizedCurrentProject.status &&
       !values.coverImage?.[0]
     ) {
       setSuccessMessage("No project changes to save.");
@@ -478,6 +491,7 @@ export function ProjectDetailPage() {
     const formData = new FormData();
     formData.append("name", normalizedValues.name);
     formData.append("description", normalizedValues.description);
+    formData.append("status", normalizedValues.status);
 
     if (values.coverImage?.[0]) {
       formData.append("coverImage", values.coverImage[0]);
@@ -984,6 +998,17 @@ export function ProjectDetailPage() {
                   placeholder="Write a short summary of what this project is about."
                   {...registerProject("description")}
                 />
+              </label>
+
+              <label className="field">
+                <span>Status</span>
+                <select {...registerProject("status")}>
+                  {projectStatusOptions.map((status) => (
+                    <option key={status.value} value={status.value}>
+                      {status.label}
+                    </option>
+                  ))}
+                </select>
               </label>
 
               <label className="field">

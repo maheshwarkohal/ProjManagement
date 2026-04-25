@@ -1,15 +1,54 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { useCreateProjectMutation, useGetProjectsQuery } from "../services/projectApi";
+import { useSelector } from "react-redux";
+import {
+  useCreateProjectMutation,
+  useGetProjectsQuery,
+  useToggleProjectStarMutation,
+} from "../services/projectApi";
 import { resolveAssetUrl } from "../utils/assets";
+import { AddIcon, DownArrow, SearchIcon } from "../icons/icons";
+
+const projectStatusOptions = [
+  { value: "all", label: "All Status" },
+  { value: "planning", label: "Planning" },
+  { value: "active", label: "Active" },
+  { value: "on_hold", label: "On Hold" },
+  { value: "completed", label: "Completed" },
+];
+
+const statusLabelMap = {
+  planning: "Planning",
+  active: "Active",
+  on_hold: "On Hold",
+  completed: "Completed",
+};
+
+const statusClassMap = {
+  planning: "project-status-badge project-status-planning",
+  active: "project-status-badge project-status-active",
+  on_hold: "project-status-badge project-status-on-hold",
+  completed: "project-status-badge project-status-completed",
+};
+
+const formatMemberCount = (count) =>
+  `${count} ${count === 1 ? "member" : "members"}`;
 
 export function DashboardPage() {
+  const location = useLocation();
+  const currentUser = useSelector((state) => state.auth.user);
+  const [activeTab, setActiveTab] = useState("all");
+  const [searchValue, setSearchValue] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
+  const [successMessage, setSuccessMessage] = useState(
+    location.state?.successMessage || "",
+  );
   const { data, isLoading, isFetching, isError, error } = useGetProjectsQuery();
   const [createProject, { isLoading: isCreating, error: createError }] =
     useCreateProjectMutation();
+  const [toggleProjectStar] = useToggleProjectStarMutation();
   const {
     register,
     handleSubmit,
@@ -22,9 +61,22 @@ export function DashboardPage() {
       coverImage: null,
     },
   });
+
   const projects = data?.data ?? [];
-  const getProjectProgress = (project) =>
-    Number.isFinite(project?.progressPercentage) ? project.progressPercentage : 0;
+
+  const filteredProjects = useMemo(() => {
+    return projects.filter((project) => {
+      const matchesTab =
+        activeTab === "starred" ? Boolean(project.starred) : true;
+      const matchesSearch = project.name
+        ?.toLowerCase()
+        .includes(searchValue.trim().toLowerCase());
+      const matchesStatus =
+        statusFilter === "all" ? true : project.status === statusFilter;
+
+      return matchesTab && matchesSearch && matchesStatus;
+    });
+  }, [activeTab, projects, searchValue, statusFilter]);
 
   const closeCreateModal = () => {
     setIsCreateModalOpen(false);
@@ -57,8 +109,84 @@ export function DashboardPage() {
     );
   };
 
+  const handleToggleStar = async (event, project) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    await toggleProjectStar({
+      projectId: project._id,
+      starred: !project.starred,
+    }).unwrap();
+  };
+
   return (
     <div className="page-stack">
+      <section className="projects-toolbar">
+        <div className="projects-search-group">
+          <h2>Projects</h2>
+          <div
+            type="button"
+            onClick={() => {
+              setSuccessMessage("");
+              reset({
+                name: "",
+                description: "",
+                coverImage: null,
+              });
+              setIsCreateModalOpen(true);
+            }}
+          >
+            <AddIcon />
+          </div>
+        </div>
+
+        <label className="projects-search">
+          <SearchIcon />
+          <input
+            type="text"
+            placeholder="Search projects..."
+            value={searchValue}
+            onChange={(event) => setSearchValue(event.target.value)}
+          />
+        </label>
+      </section>
+
+      <section className="projects-controls">
+        <div className="projects-tabs">
+          <button
+            className={`projects-tab-button${activeTab === "all" ? " is-active" : ""}`}
+            type="button"
+            onClick={() => setActiveTab("all")}
+          >
+            All Projects
+          </button>
+          <button
+            className={`projects-tab-button${activeTab === "starred" ? " is-active" : ""}`}
+            type="button"
+            onClick={() => setActiveTab("starred")}
+          >
+            Starred
+          </button>
+        </div>
+
+        <div className="projects-filter-group">
+          <label className="projects-status-filter">
+            <span className="projects-filter-icon">
+              <DownArrow />
+            </span>
+            <select
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+            >
+              {projectStatusOptions.map((status) => (
+                <option key={status.value} value={status.value}>
+                  {status.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      </section>
 
       {!projects.length && (isLoading || isFetching) ? (
         <p className="panel">Loading projects...</p>
@@ -69,56 +197,50 @@ export function DashboardPage() {
         </p>
       ) : null}
 
-      <section className="section-heading">
-        <div>
-          <p className="eyebrow">Project list</p>
-          <h2>Open an existing project</h2>
-        </div>
-        <button
-          className="primary-button"
-          type="button"
-          onClick={() => {
-            setSuccessMessage("");
-              reset({
-                name: "",
-                description: "",
-                coverImage: null,
-              });
-              setIsCreateModalOpen(true);
-            }}
-        >
-          Add project
-        </button>
-      </section>
-
-      <section className="project-grid">
-        {projects.map((project) => (
-          <article
-            key={project._id}
-            className="project-card project-card-compact"
-          >
-            <Link className="project-card-link" to={`/projects/${project._id}`}>
-              <div className="project-card-header">
-                {project.coverImage?.url ? (
-                  <img
-                    className="project-card-image"
-                    src={resolveAssetUrl(project.coverImage.url)}
-                    alt={`${project.name} cover`}
-                  />
-                ) : (
-                  <div className="project-card-mark" aria-hidden="true">
-                    <span className="project-card-mark-a" />
-                    <span className="project-card-mark-b" />
-                    <span className="project-card-mark-c" />
+      <section className="project-grid project-grid-dashboard">
+        {filteredProjects.map((project) => (
+          <article key={project._id} className="project-dashboard-card">
+            <Link
+              className="project-dashboard-link"
+              to={`/projects/${project._id}`}
+            >
+              <div className="project-dashboard-card-top">
+                <div className="project-dashboard-card-header">
+                  {project.coverImage?.url ? (
+                    <img
+                      className="project-dashboard-image"
+                      src={resolveAssetUrl(project.coverImage.url)}
+                      alt={`${project.name} cover`}
+                    />
+                  ) : (
+                    <div className="project-card-mark" aria-hidden="true">
+                      <span className="project-card-mark-a" />
+                      <span className="project-card-mark-b" />
+                      <span className="project-card-mark-c" />
+                    </div>
+                  )}
+                  <div>
+                    <h3>{project.name}</h3>
                   </div>
-                )}
-                <h3>{project.name}</h3>
+                </div>
+
+                <div className="project-dashboard-actions">
+                  <button
+                    className={`project-star-button${project.starred ? " is-active" : ""}`}
+                    type="button"
+                    onClick={(event) => handleToggleStar(event, project)}
+                    aria-label={
+                      project.starred ? "Unstar project" : "Star project"
+                    }
+                    title={project.starred ? "Unstar project" : "Star project"}
+                  >
+                    ☆
+                  </button>
+                </div>
               </div>
 
-              <div className="project-card-divider" />
-
-              <div className="project-card-body">
-                <div className="project-card-members-row">
+              <div className="project-status">
+                <div className="project-dashboard-members">
                   <div className="project-member-stack" aria-hidden="true">
                     {(project.memberPreview || []).map((member) => (
                       <img
@@ -133,42 +255,45 @@ export function DashboardPage() {
                       />
                     ))}
                   </div>
-                  <span className="project-members-text">
-                    {project.members} {project.members === 1 ? "member" : "members"}
-                  </span>
+                  <span>{formatMemberCount(project.members)}</span>
+                </div>
+                <span
+                  className={
+                    statusClassMap[project.status] || statusClassMap.planning
+                  }
+                >
+                  {statusLabelMap[project.status] || "Planning"}
+                </span>
+              </div>
+
+              <div className="project-dashboard-progress">
+                <div className="project-dashboard-progress-header">
+                  <span>Project Progress</span>
+                  <strong>{project.progressPercentage || 0}%</strong>
                 </div>
 
-                <div className="project-progress-block">
-                  <div className="project-progress-header">
-                    <span>Project Progress</span>
-                    <strong>{getProjectProgress(project)}%</strong>
-                  </div>
-                  <div
-                    className="project-progress-bar"
-                    role="progressbar"
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-valuenow={getProjectProgress(project)}
-                    aria-label={`${project.name} progress`}
-                  >
-                    <span
-                      className="project-progress-fill"
-                      style={{ width: `${getProjectProgress(project)}%` }}
-                    />
-                  </div>
+                <div
+                  className="project-progress-bar"
+                  role="progressbar"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={project.progressPercentage || 0}
+                  aria-label={`${project.name} progress`}
+                >
+                  <span
+                    className="project-progress-fill"
+                    style={{ width: `${project.progressPercentage || 0}%` }}
+                  />
                 </div>
               </div>
             </Link>
           </article>
         ))}
 
-        {!isLoading && !projects.length ? (
-          <div className="project-card project-card-compact empty-state">
-            <h3>No projects yet</h3>
-            <p>
-              Start your first workspace with the add project button and it will
-              appear here right away.
-            </p>
+        {!isLoading && !filteredProjects.length ? (
+          <div className="project-dashboard-card empty-state">
+            <h3>No matching projects</h3>
+            <p>Try another search, switch tabs, or change the status filter.</p>
           </div>
         ) : null}
       </section>
