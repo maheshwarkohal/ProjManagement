@@ -9,7 +9,11 @@ import { ApiError } from "../utils/api-error.js";
 import { asyncHandler } from "../utils/async-handler.js";
 import { ApiResponse } from "../utils/api-response.js";
 import mongoose from "mongoose";
-import { AvailableUserRole, UserRolesEnum } from "../utils/constants.js";
+import {
+  AvailableUserRole,
+  ProjectStatusEnum,
+  UserRolesEnum,
+} from "../utils/constants.js";
 
 const getServerBaseUrl = (req) => {
   if (process.env.SERVER_URL?.trim()) {
@@ -182,7 +186,9 @@ const getProjects = asyncHandler(async (req, res) => {
         _id: "$projects._id",
         name: "$projects.name",
         description: "$projects.description",
-        status: "$projects.status",
+        status: {
+          $ifNull: ["$projects.status", ProjectStatusEnum.PLANNING],
+        },
         coverImage: "$projects.coverImage",
         members: "$projects.members",
         memberPreview: "$projects.memberPreview",
@@ -209,6 +215,10 @@ const getProjectById = asyncHandler(async (req, res) => {
 
   if (!project) {
     throw new ApiError(404, "Project not found");
+  }
+
+  if (!project.status) {
+    project.status = ProjectStatusEnum.PLANNING;
   }
 
   return res

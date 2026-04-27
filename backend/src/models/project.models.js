@@ -1,4 +1,5 @@
 import mongoose, { Schema } from "mongoose";
+import { AvailableProjectStatus, ProjectStatusEnum } from "../utils/constants.js";
 
 const projectSchema = new Schema(
   {
@@ -10,6 +11,11 @@ const projectSchema = new Schema(
     },
     description: {
       type: String,
+    },
+    status: {
+      type: String,
+      enum: AvailableProjectStatus,
+      default: ProjectStatusEnum.PLANNING,
     },
     coverImage: {
       type: {

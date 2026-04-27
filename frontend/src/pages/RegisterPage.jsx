@@ -26,7 +26,6 @@ export function RegisterPage() {
   return (
     <div className="form-stack auth-form-shell">
       <div className="auth-form-header">
-        <p className="eyebrow">Create account</p>
         <h2>Start your team workspace</h2>
         <p className="muted-text">
           Create your Syncora account and begin organizing work with clarity.

@@ -18,6 +18,10 @@ const projectMemberSchema = new Schema(
       enum: AvailableUserRole,
       default: UserRolesEnum.MEMBER,
     },
+    starred: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true },
 );
