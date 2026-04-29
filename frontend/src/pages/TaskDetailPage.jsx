@@ -13,7 +13,13 @@ import {
   useUpdateTaskDetailsMutation,
   useUpdateSubtaskStatusMutation,
 } from "../services/taskApi";
-import { CloseIcon, DeleteIcon, EditIcon } from "../icons/icons";
+import {
+  CloseIcon,
+  DeleteIcon,
+  EditIcon,
+  FilterIcon,
+  SearchIcon,
+} from "../icons/icons";
 
 const taskStatusOptions = [
   { value: "todo", label: "To do" },
@@ -21,6 +27,11 @@ const taskStatusOptions = [
   { value: "on_hold", label: "On hold" },
   { value: "testing", label: "Testing" },
   { value: "done", label: "Done" },
+];
+
+const subtaskFilterOptions = [
+  { value: "all", label: "All Status" },
+  ...taskStatusOptions,
 ];
 
 const formatStatusLabel = (status) =>
@@ -45,11 +56,21 @@ const getTaskStatusPillClass = (status) => {
   }
 };
 
+const subtaskStatusSummaryClassMap = {
+  todo: "project-task-summary-pill project-task-summary-pill-todo",
+  in_progress: "project-task-summary-pill project-task-summary-pill-in-progress",
+  on_hold: "project-task-summary-pill project-task-summary-pill-on-hold",
+  testing: "project-task-summary-pill project-task-summary-pill-testing",
+  done: "project-task-summary-pill project-task-summary-pill-done",
+};
+
 export function TaskDetailPage() {
   const { projectId, taskId } = useParams();
   const navigate = useNavigate();
   const currentUser = useSelector((state) => state.auth.user);
   const [successMessage, setSuccessMessage] = useState("");
+  const [subtaskSearchValue, setSubtaskSearchValue] = useState("");
+  const [subtaskStatusFilter, setSubtaskStatusFilter] = useState("all");
   const [isEditTaskModalOpen, setIsEditTaskModalOpen] = useState(false);
   const [isAddSubtaskModalOpen, setIsAddSubtaskModalOpen] = useState(false);
   const [isDeleteTaskModalOpen, setIsDeleteTaskModalOpen] = useState(false);
@@ -114,6 +135,27 @@ export function TaskDetailPage() {
     [members, currentUser?._id],
   );
   const isAdmin = currentMembership?.role === "admin";
+  const subtaskStatusCounts = useMemo(() => {
+    return taskStatusOptions.map((statusOption) => ({
+      ...statusOption,
+      count: subtasks.filter(
+        (subtask) => (subtask.status || "todo") === statusOption.value,
+      ).length,
+    }));
+  }, [subtasks]);
+  const filteredSubtasks = useMemo(() => {
+    return subtasks.filter((subtask) => {
+      const matchesSearch = subtask.title
+        ?.toLowerCase()
+        .includes(subtaskSearchValue.trim().toLowerCase());
+      const matchesStatus =
+        subtaskStatusFilter === "all"
+          ? true
+          : subtask.status === subtaskStatusFilter;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [subtaskSearchValue, subtaskStatusFilter, subtasks]);
 
   useEffect(() => {
     if (!task) {
@@ -371,7 +413,7 @@ export function TaskDetailPage() {
     <div className="page-stack">
       <section className="hero-panel">
         <div className="hero-actions">
-          <div>
+          <div className="project-hero-text">
             <h1>{task?.title}</h1>
             <p>{task?.description || "No description added yet."}</p>
           </div>
@@ -404,62 +446,105 @@ export function TaskDetailPage() {
             ) : null}
           </div>
         </div>
-      </section>
+        <div className="project-hero-insights task-hero-insights">
+          <div className="project-hero-insights-block task-hero-meta-block">
+            <div className="task-hero-meta-grid">
+              <div className="task-hero-meta-item">
+                <span>Assigned to</span>
+                <strong>
+                  {task?.assignedTo?.fullName ||
+                    task?.assignedTo?.username ||
+                    "Unassigned"}
+                </strong>
+              </div>
 
-      <section className="stats-grid">
-        <article className="stat-card">
-          <span>Assigned to</span>
-          <strong>{task?.assignedTo?.fullName || task?.assignedTo?.username || "Unassigned"}</strong>
-        </article>
-        <article className="stat-card">
-          <span>Current status</span>
-          <strong>{formatStatusLabel(task?.status)}</strong>
-        </article>
-        <article className="stat-card">
-          <span>Subtasks</span>
-          <strong>{subtasksLoading ? "..." : subtasks.length}</strong>
-        </article>
+              <div className="task-hero-meta-item">
+                <span>Current status</span>
+                <strong>{formatStatusLabel(task?.status)}</strong>
+              </div>
+
+              <div className="task-hero-meta-item">
+                <span>Total subtasks</span>
+                <strong>{subtasksLoading ? "..." : subtasks.length}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div className="project-hero-insights-divider" aria-hidden="true" />
+
+          <div className="project-hero-insights-block task-hero-summary-block">
+            <div className="project-hero-insights-head">
+              <span>Subtask breakdown</span>
+              <strong>{subtasksLoading ? "..." : `${subtasks.length} total`}</strong>
+            </div>
+
+            <div className="project-task-summary-grid">
+              {subtaskStatusCounts.map((statusItem) => (
+                <div
+                  key={statusItem.value}
+                  className={
+                    subtaskStatusSummaryClassMap[statusItem.value] ||
+                    "project-task-summary-pill project-task-summary-pill-todo"
+                  }
+                >
+                  <span>{statusItem.label}</span>
+                  <strong>{subtasksLoading ? "..." : statusItem.count}</strong>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </section>
 
       {successMessage ? <p className="form-success">{successMessage}</p> : null}
 
       <section className="panel">
         <div className="section-heading">
-          <div>
-            <h2>Break the work down</h2>
-          </div>
+          <p className="subHeading">Subtasks</p>
           {isAdmin ? (
             <button
-              className="icon-button section-icon-button"
+              className="primary-button projects-add-button"
               type="button"
               onClick={() => {
                 setSuccessMessage("");
                 setIsAddSubtaskModalOpen(true);
               }}
-              aria-label="Add subtask"
               title="Add subtask"
             >
-              <svg
-                width="18"
-                height="18"
-                viewBox="0 0 24 24"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                aria-hidden="true"
-              >
-                <path
-                  d="M12 5V19M5 12H19"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
+              Add subtask
             </button>
           ) : null}
         </div>
+        <div className="project-task-toolbar">
+          <label className="projects-search project-task-search">
+            <SearchIcon />
+            <input
+              type="text"
+              placeholder="Search subtasks..."
+              value={subtaskSearchValue}
+              onChange={(event) => setSubtaskSearchValue(event.target.value)}
+            />
+          </label>
+
+          <label className="projects-status-filter project-task-filter">
+            <span className="projects-filter-icon">
+              <FilterIcon />
+            </span>
+            <select
+              value={subtaskStatusFilter}
+              onChange={(event) => setSubtaskStatusFilter(event.target.value)}
+            >
+              {subtaskFilterOptions.map((status) => (
+                <option key={status.value} value={status.value}>
+                  {status.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
 
         <div className="list-stack">
-          {subtasks.map((subtask) => (
+          {filteredSubtasks.map((subtask) => (
             <div className="list-row task-list-row" key={subtask._id}>
               <div className="task-row-link">
                 <div>
@@ -523,12 +608,22 @@ export function TaskDetailPage() {
               </div>
             </div>
           ))}
-          {!subtasksLoading && !subtasks.length ? <p>No subtasks created yet.</p> : null}
+          {!subtasksLoading && !filteredSubtasks.length ? (
+            <p>
+              {subtaskSearchValue || subtaskStatusFilter !== "all"
+                ? "No subtasks match your current search or filter."
+                : "No subtasks created yet."}
+            </p>
+          ) : null}
         </div>
       </section>
 
       {isAdmin && isEditTaskModalOpen ? (
-        <div className="modal-overlay" role="presentation" onClick={closeEditTaskModal}>
+        <div
+          className="modal-overlay"
+          role="presentation"
+          onClick={closeEditTaskModal}
+        >
           <section
             className="modal-card"
             role="dialog"
@@ -550,7 +645,10 @@ export function TaskDetailPage() {
               </button>
             </div>
 
-            <form className="project-form" onSubmit={taskForm.handleSubmit(onSaveTask)}>
+            <form
+              className="project-form"
+              onSubmit={taskForm.handleSubmit(onSaveTask)}
+            >
               <label className="field">
                 <span>Title</span>
                 <input
@@ -611,7 +709,11 @@ export function TaskDetailPage() {
                 >
                   Cancel
                 </button>
-                <button className="primary-button" type="submit" disabled={isSavingTask}>
+                <button
+                  className="primary-button"
+                  type="submit"
+                  disabled={isSavingTask}
+                >
                   {isSavingTask ? "Saving..." : "Save changes"}
                 </button>
               </div>
@@ -621,7 +723,11 @@ export function TaskDetailPage() {
       ) : null}
 
       {isAdmin && isAddSubtaskModalOpen ? (
-        <div className="modal-overlay" role="presentation" onClick={closeAddSubtaskModal}>
+        <div
+          className="modal-overlay"
+          role="presentation"
+          onClick={closeAddSubtaskModal}
+        >
           <section
             className="modal-card"
             role="dialog"
@@ -643,7 +749,10 @@ export function TaskDetailPage() {
               </button>
             </div>
 
-            <form className="project-form" onSubmit={subtaskForm.handleSubmit(onCreateSubtask)}>
+            <form
+              className="project-form"
+              onSubmit={subtaskForm.handleSubmit(onCreateSubtask)}
+            >
               <label className="field">
                 <span>Subtask title</span>
                 <input
@@ -704,7 +813,11 @@ export function TaskDetailPage() {
                 >
                   Cancel
                 </button>
-                <button className="primary-button" type="submit" disabled={isCreatingSubtask}>
+                <button
+                  className="primary-button"
+                  type="submit"
+                  disabled={isCreatingSubtask}
+                >
                   {isCreatingSubtask ? "Adding..." : "Add subtask"}
                 </button>
               </div>
@@ -714,7 +827,11 @@ export function TaskDetailPage() {
       ) : null}
 
       {isAdmin && isEditSubtaskModalOpen ? (
-        <div className="modal-overlay" role="presentation" onClick={closeEditSubtaskModal}>
+        <div
+          className="modal-overlay"
+          role="presentation"
+          onClick={closeEditSubtaskModal}
+        >
           <section
             className="modal-card"
             role="dialog"
@@ -736,7 +853,10 @@ export function TaskDetailPage() {
               </button>
             </div>
 
-            <form className="project-form" onSubmit={editSubtaskForm.handleSubmit(onSaveSubtask)}>
+            <form
+              className="project-form"
+              onSubmit={editSubtaskForm.handleSubmit(onSaveSubtask)}
+            >
               <label className="field">
                 <span>Subtask title</span>
                 <input
@@ -747,7 +867,9 @@ export function TaskDetailPage() {
                   })}
                 />
                 {editSubtaskForm.formState.errors.title ? (
-                  <small>{editSubtaskForm.formState.errors.title.message}</small>
+                  <small>
+                    {editSubtaskForm.formState.errors.title.message}
+                  </small>
                 ) : null}
               </label>
 
@@ -797,7 +919,11 @@ export function TaskDetailPage() {
                 >
                   Cancel
                 </button>
-                <button className="primary-button" type="submit" disabled={isUpdatingSubtask}>
+                <button
+                  className="primary-button"
+                  type="submit"
+                  disabled={isUpdatingSubtask}
+                >
                   {isUpdatingSubtask ? "Saving..." : "Save changes"}
                 </button>
               </div>
@@ -834,7 +960,8 @@ export function TaskDetailPage() {
             </div>
 
             <p className="muted-text">
-              This will permanently remove <strong>{activeSubtask?.title}</strong>.
+              This will permanently remove{" "}
+              <strong>{activeSubtask?.title}</strong>.
             </p>
 
             {deleteSubtaskError?.data?.message ? (

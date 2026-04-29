@@ -22,7 +22,6 @@ import {
   useUpdateTaskStatusMutation,
 } from "../services/taskApi";
 import {
-  AddIcon,
   CloseIcon,
   DeleteIcon,
   EditIcon,
@@ -67,6 +66,14 @@ const getTaskStatusPillClass = (status) => {
     default:
       return "status-pill status-pill-todo";
   }
+};
+
+const taskStatusSummaryClassMap = {
+  todo: "project-task-summary-pill project-task-summary-pill-todo",
+  in_progress: "project-task-summary-pill project-task-summary-pill-in-progress",
+  on_hold: "project-task-summary-pill project-task-summary-pill-on-hold",
+  testing: "project-task-summary-pill project-task-summary-pill-testing",
+  done: "project-task-summary-pill project-task-summary-pill-done",
 };
 
 export function ProjectDetailPage() {
@@ -184,6 +191,12 @@ export function ProjectDetailPage() {
     [members, currentUser?._id],
   );
   const isAdmin = currentMembership?.role === "admin";
+  const taskStatusCounts = useMemo(() => {
+    return taskStatusOptions.map((statusOption) => ({
+      ...statusOption,
+      count: tasks.filter((task) => (task.status || "todo") === statusOption.value).length,
+    }));
+  }, [tasks]);
   const filteredTasks = useMemo(() => {
     return tasks.filter((task) => {
       const matchesSearch = task.title
@@ -657,13 +670,31 @@ export function ProjectDetailPage() {
             </div>
           ) : null}
         </div>
-        <div className="project-hero-summary-row">
-          <article className="stat-card project-hero-summary-card">
-            <span>Tasks</span>
-            <strong>{tasksLoading ? "..." : tasks.length}</strong>
-          </article>
+        <div className="project-hero-insights">
+          <div className="project-hero-insights-block project-hero-tasks-block">
+            <div className="project-hero-insights-head">
+              <span>Tasks overview</span>
+              <strong>{tasksLoading ? "..." : `${tasks.length} total tasks`}</strong>
+            </div>
+            <div className="project-task-summary-grid">
+              {taskStatusCounts.map((statusItem) => (
+                <div
+                  key={statusItem.value}
+                  className={
+                    taskStatusSummaryClassMap[statusItem.value] ||
+                    "project-task-summary-pill project-task-summary-pill-todo"
+                  }
+                >
+                  <span>{statusItem.label}</span>
+                  <strong>{tasksLoading ? "..." : statusItem.count}</strong>
+                </div>
+              ))}
+            </div>
+          </div>
 
-          <div className="project-hero-members-card">
+          <div className="project-hero-insights-divider" aria-hidden="true" />
+
+          <div className="project-hero-insights-block project-hero-members-block">
             <div className="members-summary-card">
               <div className="members-summary-copy">
                 <span>Members</span>
@@ -675,16 +706,15 @@ export function ProjectDetailPage() {
               <div className="members-summary-actions">
                 {isAdmin ? (
                   <button
-                    className="action-icon-button action-icon-button-edit"
+                    className="secondary-button project-member-add-button"
                     type="button"
                     onClick={() => {
                       setSuccessMessage("");
                       setIsAddMemberModalOpen(true);
                     }}
-                    aria-label="Add member"
                     title="Add member"
                   >
-                    <AddIcon />
+                    Add member
                   </button>
                 ) : null}
 
@@ -1356,7 +1386,7 @@ export function ProjectDetailPage() {
             <div className="side-drawer-header">
               <h2 id="members-drawer-title">Project members</h2>
               <button
-                className="action-icon-button action-icon-button-delete"
+                className="icon-button"
                 type="button"
                 onClick={() => setIsMembersDrawerOpen(false)}
                 aria-label="Close members panel"
