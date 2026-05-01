@@ -21,7 +21,7 @@ import {
   updateSubtaskDetails,
   updateSubtaskStatus,
   deleteSubtask,
-} from "../controllers/subtask.controllers.js";
+} from "../controllers/subTask.controllers.js";
 import {
   createTaskValidator,
   updateTaskDetailsValidator,
@@ -81,14 +81,16 @@ router
     deleteTask,
   );
 
-router.route("/:projectId/t/:taskId/status").patch(
-  mongoIdParamValidator("projectId", "taskId"),
-  validate,
-  requireProjectMembership,
-  updateTaskStatusValidator(),
-  validate,
-  updateTaskStatus,
-);
+router
+  .route("/:projectId/t/:taskId/status")
+  .patch(
+    mongoIdParamValidator("projectId", "taskId"),
+    validate,
+    requireProjectMembership,
+    updateTaskStatusValidator(),
+    validate,
+    updateTaskStatus,
+  );
 
 router
   .route("/:projectId/t/:taskId/subtasks")
@@ -134,13 +136,15 @@ router
     deleteSubtask,
   );
 
-router.route("/:projectId/st/:subTaskId/status").patch(
-  mongoIdParamValidator("projectId", "subTaskId"),
-  validate,
-  requireProjectMembership,
-  updateSubtaskStatusValidator(),
-  validate,
-  updateSubtaskStatus,
-);
+router
+  .route("/:projectId/st/:subTaskId/status")
+  .patch(
+    mongoIdParamValidator("projectId", "subTaskId"),
+    validate,
+    requireProjectMembership,
+    updateSubtaskStatusValidator(),
+    validate,
+    updateSubtaskStatus,
+  );
 
 export default router;
